@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: stockflow-api:latest
+    container_name: stockflow-api
+    ports:
+      - "${STOCKFLOW_PORT:-8000}:8000"
+    environment:
+      STOCKFLOW_SECRET_KEY: ${STOCKFLOW_SECRET_KEY:?defina no .env — gere com `python -c "import secrets;print(secrets.token_hex(32))"`}
+      STOCKFLOW_DB: /data/stockflow.db
+      STOCKFLOW_HOST: 0.0.0.0
+      STOCKFLOW_PORT: 8000
+      STOCKFLOW_RELOAD: "0"
+    volumes:
+      - stockflow_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status==200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  stockflow_data:
+    name: stockflow_data
